@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>안심 주소 암호화 | 100% 브라우저 로컬 보안</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans KR & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- QRCode.js 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans KR"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200 selection:bg-brand-500 selection:text-white">
+
+  <!-- 상단 네비게이션 바 -->
+  <header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/20">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg tracking-tight leading-none">안심주소 <span class="text-brand-600 dark:text-brand-500">Vault</span></h1>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Zero-Knowledge 주소 암호화 도구</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- 로컬 보안 상태 배지 -->
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>100% 브라우저 로컬 암호화</span>
+        </div>
+
+        <!-- 다크모드 토글 버튼 -->
+        <button id="themeToggle" type="button" aria-label="테마 변경" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
+          <i data-lucide="moon" id="moonIcon" class="w-4 h-4 hidden dark:block"></i>
+          <i data-lucide="sun" id="sunIcon" class="w-4 h-4 block dark:hidden"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+    <!-- 보안 안내 배너 -->
+    <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-brand-50 to-indigo-50 dark:from-slate-900 dark:to-slate-900 border border-brand-100 dark:border-slate-800 flex items-start sm:items-center gap-3.5 shadow-sm">
+      <div class="p-2 rounded-xl bg-brand-600/10 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5 sm:mt-0">
+        <i data-lucide="lock" class="w-5 h-5"></i>
+      </div>
+      <div class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+        <strong class="font-semibold text-slate-900 dark:text-white">서버로 어떠한 데이터도 전송되지 않습니다.</strong>
+        입력하신 주소와 비밀번호는 사용자의 기기(브라우저 내장 <code class="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 font-mono text-xs border border-slate-200 dark:border-slate-700">Web Crypto API</code>)에서만 처리되며, 비밀번호 분실 시 복구가 불가능합니다.
+      </div>
+    </div>
+
+    <!-- 메인 카드 컨테이너 -->
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/80 dark:border-slate-800 overflow-hidden">
+
+      <!-- 탭 네비게이션 -->
+      <div class="grid grid-cols-2 p-1.5 bg-slate-100/80 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800">
+        <button id="tabEncrypt" type="button" class="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold text-sm transition-all bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm">
+          <i data-lucide="key-round" class="w-4 h-4"></i>
+          <span>암호화 (Encrypt)</span>
+        </button>
+        <button id="tabDecrypt" type="button" class="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-medium text-sm transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
+          <i data-lucide="unlock" class="w-4 h-4"></i>
+          <span>복호화 (Decrypt)</span>
+        </button>
+      </div>
+
+      <!-- 1. 암호화 패널 (Encrypt Panel) -->
+      <div id="panelEncrypt" class="p-5 sm:p-8 space-y-6">
+        
+        <!-- 원본 주소/텍스트 입력 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="plainAddress" class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+              암호화할 주소 또는 민감 정보 <span class="text-rose-500">*</span>
+            </label>
+            <button type="button" id="btnSampleAddress" class="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium">
+              예시 주소 입력
+            </button>
+          </div>
+          <textarea id="plainAddress" rows="3" placeholder="예: 서울특별시 강남구 테헤란로 152, 강남파이낸스센터 21층 (공동현관 비밀번호: #1234*)" class="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 text-sm sm:text-base transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-600"></textarea>
+        </div>
+
+        <!-- 비밀번호 / 암호화 키 입력 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="encryptKey" class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+              비밀번호 (암호화 키) <span class="text-rose-500">*</span>
+            </label>
+            <button type="button" id="btnGenerateKey" class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/60 transition-colors">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>강력한 키 자동생성</span>
+            </button>
+          </div>
+          <div class="relative">
+            <input type="password" id="encryptKey" placeholder="상대방과 공유할 비밀번호를 입력하세요" class="w-full pl-4 pr-20 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 text-sm sm:text-base font-mono transition-all" />
+            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <button type="button" id="btnCopyKey" title="비밀번호 복사" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+              <button type="button" id="toggleEncryptKeyVis" title="비밀번호 보기/숨기기" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <!-- 비밀번호 강도 표시 바 -->
+          <div class="flex items-center gap-2 pt-1">
+            <div class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div id="strengthBar" class="h-full w-0 transition-all duration-300 rounded-full bg-slate-400"></div>
+            </div>
+            <span id="strengthText" class="text-[11px] font-medium text-slate-400 min-w-[52px] text-right">미입력</span>
+          </div>
+        </div>
+
+        <!-- 암호화 방식 및 출력 포맷 선택 -->
+        <div class="space-y-2.5">
+          <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+            암호화 방식 및 출력 형식
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- 옵션 1: AES-256-GCM 표준 텍스트 -->
+            <label class="cursor-pointer relative">
+              <input type="radio" name="encryptMode" value="aes-gcm" class="peer sr-only" checked />
+              <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 dark:peer-checked:bg-brand-950/30 transition-all h-full">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white">AES-256-GCM</span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">최고보안</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">표준 군사급 암호화 문자열을 생성합니다.</p>
+              </div>
+            </label>
+
+            <!-- 옵션 2: 원클릭 공유 링크 (Hash Fragment) -->
+            <label class="cursor-pointer relative">
+              <input type="radio" name="encryptMode" value="share-link" class="peer sr-only" />
+              <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 dark:peer-checked:bg-brand-950/30 transition-all h-full">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white">공유 링크 (URL)</span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400">편의성</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">접속 시 복호화 화면에 자동 입력되는 URL을 생성합니다.</p>
+              </div>
+            </label>
+
+            <!-- 옵션 3: 경량 난독화 (Base64 + XOR) -->
+            <label class="cursor-pointer relative">
+              <input type="radio" name="encryptMode" value="xor-b64" class="peer sr-only" />
+              <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 peer-checked:border-brand-500 peer-checked:bg-brand-50/50 dark:peer-checked:bg-brand-950/30 transition-all h-full">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white">짧은 암호문</span>
+                  <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400">초경량</span>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">문자/메신저 전송에 유리한 짧은 길이를 생성합니다.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 암호화 실행 버튼 -->
+        <button id="btnEncrypt" type="button" class="w-full py-3.5 px-6 rounded-2xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold text-base shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2 transition-all">
+          <i data-lucide="lock" class="w-5 h-5"></i>
+          <span>안전하게 암호화하기</span>
+        </button>
+
+        <!-- 암호화 결과 영역 -->
+        <div id="encryptResultSection" class="hidden pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4 animate-fadeIn">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+              <span>암호화가 완료되었습니다</span>
+            </span>
+            <span id="outputBadge" class="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">AES-256-GCM</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+            <!-- 암호문 텍스트 박스 -->
+            <div class="md:col-span-2 flex flex-col justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+              <textarea id="encryptedOutput" readonly rows="4" class="w-full bg-transparent font-mono text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:outline-none resize-none break-all"></textarea>
+              <div class="flex flex-wrap items-center gap-2 pt-3 mt-2 border-t border-slate-200/70 dark:border-slate-800">
+                <button id="btnCopyOutput" type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                  <span>암호문 복사하기</span>
+                </button>
+                <button id="btnTestDecrypt" type="button" class="py-2.5 px-3.5 rounded-xl bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors" title="복호화 탭으로 전달하여 테스트">
+                  <i data-lucide="arrow-right-left" class="w-4 h-4"></i>
+                  <span>복호화 테스트</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- QR 코드 영역 -->
+            <div class="flex flex-col items-center justify-center p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center">
+              <div id="qrcodeContainer" class="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center min-h-[136px] min-w-[136px]"></div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2.5 font-medium">스마트폰 스캔용 QR 코드</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 복호화 패널 (Decrypt Panel) -->
+      <div id="panelDecrypt" class="hidden p-5 sm:p-8 space-y-6">
+        
+        <!-- 암호화된 문자열 입력 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="cipherInput" class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+              암호화된 텍스트 또는 공유 링크 <span class="text-rose-500">*</span>
+            </label>
+            <button type="button" id="btnPasteCipher" class="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium flex items-center gap-1">
+              <i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i>
+              <span>붙여넣기</span>
+            </button>
+          </div>
+          <textarea id="cipherInput" rows="3" placeholder="전달받은 암호문(SAFEADDR:...) 또는 전체 공유 URL을 붙여넣으세요" class="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 font-mono text-xs sm:text-sm transition-all resize-none placeholder:font-sans placeholder:text-slate-400 dark:placeholder:text-slate-600"></textarea>
+        </div>
+
+        <!-- 복호화 비밀번호 입력 -->
+        <div class="space-y-2">
+          <label for="decryptKey" class="block text-sm font-semibold text-slate-800 dark:text-slate-200">
+            비밀번호 (복호화 키) <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <input type="password" id="decryptKey" placeholder="암호화할 때 설정한 비밀번호를 입력하세요" class="w-full pl-4 pr-12 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 text-sm sm:text-base font-mono transition-all" />
+            <button type="button" id="toggleDecryptKeyVis" title="비밀번호 보기/숨기기" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 복호화 실행 버튼 -->
+        <button id="btnDecrypt" type="button" class="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-semibold text-base shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all">
+          <i data-lucide="unlock" class="w-5 h-5"></i>
+          <span>원본 주소 복호화하기</span>
+        </button>
+
+        <!-- 복호화 결과 영역 -->
+        <div id="decryptResultSection" class="hidden pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span>복호화 성공! 원본 내용입니다</span>
+            </span>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 space-y-4">
+            <p id="decryptedOutput" class="text-base sm:text-lg font-medium text-slate-900 dark:text-white break-words whitespace-pre-wrap leading-relaxed"></p>
+
+            <!-- 액션 버튼들 (복사 + 지도 검색 바로가기) -->
+            <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-emerald-200/70 dark:border-emerald-800/50">
+              <button id="btnCopyDecrypted" type="button" class="py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors">
+                <i data-lucide="copy" class="w-4 h-4"></i>
+                <span>주소 복사</span>
+              </button>
+
+              <div class="flex-1"></div>
+
+              <!-- 지도 바로가기 링크 모음 -->
+              <a id="linkNaverMap" href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-3 rounded-xl bg-[#03C75A] hover:opacity-90 text-white font-semibold text-xs flex items-center gap-1.5 transition-opacity">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span>네이버 지도</span>
+              </a>
+              <a id="linkKakaoMap" href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-3 rounded-xl bg-[#FEE500] hover:opacity-90 text-[#191919] font-semibold text-xs flex items-center gap-1.5 transition-opacity">
+                <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
+                <span>카카오맵</span>
+              </a>
+              <a id="linkGoogleMap" href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors">
+                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+                <span>구글 지도</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 하단 보안 기술 설명 아코디언 / 카드 -->
+    <section class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm">
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+        <div class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2.5">
+          <i data-lucide="cpu" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-semibold text-slate-900 dark:text-white mb-1">AES-256-GCM & PBKDF2</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          100,000회 반복 해싱(PBKDF2-SHA256)으로 키를 파생하고 무작위 Salt 및 IV를 매번 생성하여 무차별 대입 공격을 차단합니다.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+        <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5">
+          <i data-lucide="wifi-off" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-semibold text-slate-900 dark:text-white mb-1">오프라인 동작 지원</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          모든 암호화 연산이 브라우저 메모리 내에서만 실행됩니다. 인터넷 연결을 끊은 상태에서도 동일하게 작동합니다.
+        </p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+        <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5">
+          <i data-lucide="link" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-semibold text-slate-900 dark:text-white mb-1">안전한 해시(#) 링크</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          공유 링크 생성 시 URL 해시 프래그먼트(<code class="font-mono">#enc=...</code>)를 사용하여 웹 서버 로그에조차 암호문이 남지 않습니다.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="py-6 text-center text-xs text-slate-400 dark:text-slate-600 border-t border-slate-200/60 dark:border-slate-800/60">
+    <p>안심주소 Vault &copy; 2026. 개인정보 보호를 위한 클라이언트 사이드 암호화 도구.</p>
+  </footer>
+
+  <!-- 토스트 알림 컨테이너 -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2.5rem)] pointer-events-none"></div>
+
+  <script>
+    /**
+     * 안심주소 Vault - 클라이언트 사이드 주소 암호화/복호화 스크립트
+     * Web Crypto API (PBKDF2 + AES-GCM) 및 경량 XOR-Base64 지원
+     */
+
+    // 아이콘 초기화
+    lucide.createIcons();
+
+    // ==========================================
+    // 1. 유틸리티 및 토스트 알림 시스템
+    // ==========================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      const styles = {
+        success: 'bg-slate-900 dark:bg-slate-800 text-white border-emerald-500/50',
+        error: 'bg-rose-600 text-white border-rose-400',
+        info: 'bg-slate-800 text-white border-slate-700'
+      };
+
+      const icons = {
+        success: 'check-circle',
+        error: 'alert-circle',
+        info: 'info'
+      };
+
+      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-medium transform transition-all duration-300 translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type] || 'info'}" class="w-4 h-4 shrink-0 ${type === 'success' ? 'text-emerald-400' : ''}"></i>
+        <span class="flex-1 leading-snug">${message}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons({ root: toast });
+
+      // 등장 애니메이션
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      // 3.2초 후 제거
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // 클립보드 복사 함수 (iFrame 호환 fallback 포함)
+    function copyToClipboard(text, successMsg = '클립보드에 복사되었습니다.') {
+      if (!text) return;
+      try {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(tempInput);
+
+        if (ok) {
+          showToast(successMsg, 'success');
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(() => showToast(successMsg, 'success'));
+        }
+      } catch (err) {
+        showToast('복사에 실패했습니다. 직접 선택하여 복사해주세요.', 'error');
+      }
+    }
+
+    // Base64 인코딩/디코딩 헬퍼 (바이너리 안전)
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    }
+
+    function base64ToArrayBuffer(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes.buffer;
+    }
+
+    // ==========================================
+    // 2. 핵심 암호화 및 복호화 엔진
+    // ==========================================
+    const CryptoEngine = {
+      // PBKDF2를 이용한 비밀번호 기반 AES-256-GCM 키 파생
+      async deriveKey(password, salt) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+          'raw',
+          enc.encode(password),
+          { name: 'PBKDF2' },
+          false,
+          ['deriveKey']
+        );
+
+        return window.crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+          },
+          keyMaterial,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      },
+
+      // AES-256-GCM 암호화
+      async encryptAES(plainText, password) {
+        const enc = new TextEncoder();
+        const salt = window.crypto.getRandomValues(new Uint8Array(16));
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const key = await this.deriveKey(password, salt);
+
+        const cipherBuffer = await window.crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv: iv },
+          key,
+          enc.encode(plainText)
+        );
+
+        // Salt(16) + IV(12) + Ciphertext 결합
+        const combined = new Uint8Array(salt.length + iv.length + cipherBuffer.byteLength);
+        combined.set(salt, 0);
+        combined.set(iv, salt.length);
+        combined.set(new Uint8Array(cipherBuffer), salt.length + iv.length);
+
+        return 'SAFEADDR:v1:' + arrayBufferToBase64(combined.buffer);
+      },
+
+      // AES-256-GCM 복호화
+      async decryptAES(cipherPayload, password) {
+        const cleanB64 = cipherPayload.replace(/^SAFEADDR:v1:/, '').trim();
+        const combinedBuffer = base64ToArrayBuffer(cleanB64);
+        const combined = new Uint8Array(combinedBuffer);
+
+        if (combined.length < 29) {
+          throw new Error('유효하지 않은 암호문 형식입니다.');
+        }
+
+        const salt = combined.slice(0, 16);
+        const iv = combined.slice(16, 28);
+        const cipherBytes = combined.slice(28);
+
+        const key = await this.deriveKey(password, salt);
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: iv },
+          key,
+          cipherBytes
+        );
+
+        const dec = new TextDecoder();
+        return dec.decode(decryptedBuffer);
+      },
+
+      // 경량 XOR + Base64 난독화 (짧은 문자열 용도)
+      encryptXOR(plainText, password) {
+        const enc = new TextEncoder();
+        const textBytes = enc.encode(plainText);
+        const keyBytes = enc.encode(password);
+        const result = new Uint8Array(textBytes.length);
+
+        for (let i = 0; i < textBytes.length; i++) {
+          result[i] = textBytes[i] ^ keyBytes[i % keyBytes.length] ^ ((i * 31) & 0xff);
+        }
+        return 'SAFELITE:' + arrayBufferToBase64(result.buffer);
+      },
+
+      // 경량 XOR + Base64 복호화
+      decryptXOR(cipherPayload, password) {
+        const cleanB64 = cipherPayload.replace(/^SAFELITE:/, '').trim();
+        const cipherBytes = new Uint8Array(base64ToArrayBuffer(cleanB64));
+        const enc = new TextEncoder();
+        const keyBytes = enc.encode(password);
+        const result = new Uint8Array(cipherBytes.length);
+
+        for (let i = 0; i < cipherBytes.length; i++) {
+          result[i] = cipherBytes[i] ^ keyBytes[i % keyBytes.length] ^ ((i * 31) & 0xff);
+        }
+        const dec = new TextDecoder('utf-8', { fatal: true });
+        return dec.decode(result);
+      }
+    };
+
+    // ==========================================
+    // 3. UI 상태 및 이벤트 바인딩
+    // ==========================================
+    const els = {
+      // 테마
+      themeToggle: document.getElementById('themeToggle'),
+      // 탭
+      tabEncrypt: document.getElementById('tabEncrypt'),
+      tabDecrypt: document.getElementById('tabDecrypt'),
+      panelEncrypt: document.getElementById('panelEncrypt'),
+      panelDecrypt: document.getElementById('panelDecrypt'),
+      // 암호화 입력
+      plainAddress: document.getElementById('plainAddress'),
+      btnSampleAddress: document.getElementById('btnSampleAddress'),
+      encryptKey: document.getElementById('encryptKey'),
+      btnGenerateKey: document.getElementById('btnGenerateKey'),
+      btnCopyKey: document.getElementById('btnCopyKey'),
+      toggleEncryptKeyVis: document.getElementById('toggleEncryptKeyVis'),
+      strengthBar: document.getElementById('strengthBar'),
+      strengthText: document.getElementById('strengthText'),
+      btnEncrypt: document.getElementById('btnEncrypt'),
+      // 암호화 출력
+      encryptResultSection: document.getElementById('encryptResultSection'),
+      outputBadge: document.getElementById('outputBadge'),
+      encryptedOutput: document.getElementById('encryptedOutput'),
+      btnCopyOutput: document.getElementById('btnCopyOutput'),
+      btnTestDecrypt: document.getElementById('btnTestDecrypt'),
+      qrcodeContainer: document.getElementById('qrcodeContainer'),
+      // 복호화 입력/출력
+      cipherInput: document.getElementById('cipherInput'),
+      btnPasteCipher: document.getElementById('btnPasteCipher'),
+      decryptKey: document.getElementById('decryptKey'),
+      toggleDecryptKeyVis: document.getElementById('toggleDecryptKeyVis'),
+      btnDecrypt: document.getElementById('btnDecrypt'),
+      decryptResultSection: document.getElementById('decryptResultSection'),
+      decryptedOutput: document.getElementById('decryptedOutput'),
+      btnCopyDecrypted: document.getElementById('btnCopyDecrypted'),
+      linkNaverMap: document.getElementById('linkNaverMap'),
+      linkKakaoMap: document.getElementById('linkKakaoMap'),
+      linkGoogleMap: document.getElementById('linkGoogleMap')
+    };
+
+    // 다크모드 초기화 및 토글
+    function initTheme() {
+      const savedTheme = localStorage.getItem('safeaddr-theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    }
+    initTheme();
+
+    els.themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('safeaddr-theme', isDark ? 'dark' : 'light');
+    });
+
+    // 탭 전환 로직
+    function switchTab(mode) {
+      if (mode === 'encrypt') {
+        els.tabEncrypt.className = 'flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold text-sm transition-all bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm';
+        els.tabDecrypt.className = 'flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-medium text-sm transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+        els.panelEncrypt.classList.remove('hidden');
+        els.panelDecrypt.classList.add('hidden');
+      } else {
+        els.tabDecrypt.className = 'flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-semibold text-sm transition-all bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm';
+        els.tabEncrypt.className = 'flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-medium text-sm transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200';
+        els.panelDecrypt.classList.remove('hidden');
+        els.panelEncrypt.classList.add('hidden');
+      }
+    }
+
+    els.tabEncrypt.addEventListener('click', () => switchTab('encrypt'));
+    els.tabDecrypt.addEventListener('click', () => switchTab('decrypt'));
+
+    // 예시 주소 채우기
+    els.btnSampleAddress.addEventListener('click', () => {
+      els.plainAddress.value = '서울특별시 송파구 올림픽로 300 (신천동, 롯데월드타워) 101동 1204호 / 공동현관: 종1234*';
+      els.plainAddress.focus();
+      showToast('예시 주소가 입력되었습니다.', 'info');
+    });
+
+    // 비밀번호 강도 측정기
+    function updatePasswordStrength(pw) {
+      if (!pw) {
+        els.strengthBar.style.width = '0%';
+        els.strengthBar.className = 'h-full transition-all duration-300 rounded-full bg-slate-400';
+        els.strengthText.textContent = '미입력';
+        els.strengthText.className = 'text-[11px] font-medium text-slate-400 min-w-[52px] text-right';
+        return;
+      }
+
+      let score = 0;
+      if (pw.length >= 6) score += 1;
+      if (pw.length >= 10) score += 1;
+      if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
+      if (/[0-9]/.test(pw)) score += 1;
+      if (/[^A-Za-z0-9]/.test(pw)) score += 1;
+
+      if (score <= 2) {
+        els.strengthBar.style.width = '33%';
+        els.strengthBar.className = 'h-full transition-all duration-300 rounded-full bg-rose-500';
+        els.strengthText.textContent = '약함';
+        els.strengthText.className = 'text-[11px] font-semibold text-rose-500 min-w-[52px] text-right';
+      } else if (score <= 3) {
+        els.strengthBar.style.width = '66%';
+        els.strengthBar.className = 'h-full transition-all duration-300 rounded-full bg-amber-500';
+        els.strengthText.textContent = '보통';
+        els.strengthText.className = 'text-[11px] font-semibold text-amber-500 min-w-[52px] text-right';
+      } else {
+        els.strengthBar.style.width = '100%';
+        els.strengthBar.className = 'h-full transition-all duration-300 rounded-full bg-emerald-500';
+        els.strengthText.textContent = '강력함';
+        els.strengthText.className = 'text-[11px] font-semibold text-emerald-500 min-w-[52px] text-right';
+      }
+    }
+
+    els.encryptKey.addEventListener('input', (e) => updatePasswordStrength(e.target.value));
+
+    // 강력한 비밀번호 자동 생성
+    els.btnGenerateKey.addEventListener('click', () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+      const randomValues = new Uint32Array(14);
+      window.crypto.getRandomValues(randomValues);
+      let generated = '';
+      for (let i = 0; i < 14; i++) {
+        generated += chars[randomValues[i] % chars.length];
+      }
+      els.encryptKey.value = generated;
+      els.encryptKey.type = 'text';
+      updatePasswordStrength(generated);
+      showToast('안전한 무작위 비밀번호가 생성되었습니다.', 'success');
+    });
+
+    // 비밀번호 보기/숨기기 토글
+    function toggleVisibility(inputEl, btnEl) {
+      const isPassword = inputEl.type === 'password';
+      inputEl.type = isPassword ? 'text' : 'password';
+      btnEl.innerHTML = `<i data-lucide="${isPassword ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
+      lucide.createIcons({ root: btnEl });
+    }
+
+    els.toggleEncryptKeyVis.addEventListener('click', () => toggleVisibility(els.encryptKey, els.toggleEncryptKeyVis));
+    els.toggleDecryptKeyVis.addEventListener('click', () => toggleVisibility(els.decryptKey, els.toggleDecryptKeyVis));
+
+    // 비밀번호 복사 버튼
+    els.btnCopyKey.addEventListener('click', () => {
+      if (!els.encryptKey.value) {
+        showToast('복사할 비밀번호가 없습니다.', 'error');
+        return;
+      }
+      copyToClipboard(els.encryptKey.value, '비밀번호가 클립보드에 복사되었습니다.');
+    });
+
+    // QR 코드 렌더링
+    function renderQRCode(text) {
+      els.qrcodeContainer.innerHTML = '';
+      if (text.length > 900) {
+        els.qrcodeContainer.innerHTML = '<p class="text-[11px] text-slate-400 px-2">텍스트가 길어 QR 생성이 생략되었습니다.</p>';
+        return;
+      }
+      new QRCode(els.qrcodeContainer, {
+        text: text,
+        width: 120,
+        height: 120,
+        colorDark: '#0f172a',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // ==========================================
+    // 4. 암호화 실행 핸들러
+    // ==========================================
+    els.btnEncrypt.addEventListener('click', async () => {
+      const rawText = els.plainAddress.value.trim();
+      const password = els.encryptKey.value;
+      const selectedMode = document.querySelector('input[name="encryptMode"]:checked').value;
+
+      if (!rawText) {
+        showToast('암호화할 주소나 내용을 입력해주세요.', 'error');
+        els.plainAddress.focus();
+        return;
+      }
+      if (!password) {
+        showToast('암호화에 사용할 비밀번호를 입력해주세요.', 'error');
+        els.encryptKey.focus();
+        return;
+      }
+
+      try {
+        els.btnEncrypt.disabled = true;
+        let finalOutput = '';
+        let badgeLabel = '';
+
+        if (selectedMode === 'aes-gcm') {
+          finalOutput = await CryptoEngine.encryptAES(rawText, password);
+          badgeLabel = 'AES-256-GCM';
+        } else if (selectedMode === 'share-link') {
+          const cipher = await CryptoEngine.encryptAES(rawText, password);
+          const baseUrl = window.location.href.split('#')[0];
+          finalOutput = `${baseUrl}#enc=${encodeURIComponent(cipher)}`;
+          badgeLabel = 'AES-256 공유 URL';
+        } else if (selectedMode === 'xor-b64') {
+          finalOutput = CryptoEngine.encryptXOR(rawText, password);
+          badgeLabel = 'SHORT-XOR-B64';
+        }
+
+        els.encryptedOutput.value = finalOutput;
+        els.outputBadge.textContent = badgeLabel;
+        els.encryptResultSection.classList.remove('hidden');
+        renderQRCode(finalOutput);
+
+        showToast('성공적으로 암호화되었습니다.', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('암호화 처리 중 오류가 발생했습니다.', 'error');
+      } finally {
+        els.btnEncrypt.disabled = false;
+      }
+    });
+
+    // 결과 복사 버튼
+    els.btnCopyOutput.addEventListener('click', () => {
+      copyToClipboard(els.encryptedOutput.value, '암호화된 결과가 복사되었습니다.');
+    });
+
+    // 복호화 테스트 바로가기
+    els.btnTestDecrypt.addEventListener('click', () => {
+      els.cipherInput.value = els.encryptedOutput.value;
+      els.decryptKey.value = els.encryptKey.value;
+      switchTab('decrypt');
+      showToast('복호화 탭으로 내용이 전달되었습니다.', 'info');
+    });
+
+    // ==========================================
+    // 5. 복호화 실행 핸들러
+    // ==========================================
+    els.btnPasteCipher.addEventListener('click', async () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            els.cipherInput.value = text;
+            showToast('클립보드 내용을 붙여넣었습니다.', 'info');
+          }
+        } else {
+          els.cipherInput.focus();
+          showToast('입력창을 길게 누르거나 Ctrl+V로 붙여넣으세요.', 'info');
+        }
+      } catch (err) {
+        els.cipherInput.focus();
+        showToast('입력창에 직접 붙여넣기(Ctrl+V) 해주세요.', 'info');
+      }
+    });
+
+    // 입력된 문자열에서 실제 암호문 추출 (공유 URL 지원)
+    function extractCipherPayload(rawInput) {
+      const trimmed = rawInput.trim();
+      if (trimmed.includes('#enc=')) {
+        const hashPart = trimmed.split('#enc=')[1];
+        return decodeURIComponent(hashPart.split('&')[0]);
+      }
+      return trimmed;
+    }
+
+    // 지도 검색 쿼리 정제 (공동현관 비밀번호 등 부가설명 제외 시도)
+    function buildMapQuery(decryptedText) {
+      // 슬래시(/)나 괄호 안의 비밀번호 안내가 있으면 앞부분 주소를 우선 추출
+      const primaryPart = decryptedText.split('/')[0].split('공동현관')[0].trim();
+      return encodeURIComponent(primaryPart || decryptedText);
+    }
+
+    els.btnDecrypt.addEventListener('click', async () => {
+      const rawCipher = els.cipherInput.value.trim();
+      const password = els.decryptKey.value;
+
+      if (!rawCipher) {
+        showToast('복호화할 암호문 또는 공유 링크를 입력해주세요.', 'error');
+        els.cipherInput.focus();
+        return;
+      }
+      if (!password) {
+        showToast('비밀번호를 입력해주세요.', 'error');
+        els.decryptKey.focus();
+        return;
+      }
+
+      try {
+        els.btnDecrypt.disabled = true;
+        const payload = extractCipherPayload(rawCipher);
+        let decryptedText = '';
+
+        if (payload.startsWith('SAFELITE:')) {
+          decryptedText = CryptoEngine.decryptXOR(payload, password);
+        } else {
+          // 기본 AES-GCM 복호화 시도
+          decryptedText = await CryptoEngine.decryptAES(payload, password);
+        }
+
+        els.decryptedOutput.textContent = decryptedText;
+        els.decryptResultSection.classList.remove('hidden');
+
+        // 지도 검색 링크 업데이트
+        const mapQuery = buildMapQuery(decryptedText);
+        els.linkNaverMap.href = `https://map.naver.com/p/search/${mapQuery}`;
+        els.linkKakaoMap.href = `https://map.kakao.com/link/search/${mapQuery}`;
+        els.linkGoogleMap.href = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+
+        showToast('복호화에 성공했습니다!', 'success');
+      } catch (err) {
+        console.error(err);
+        els.decryptResultSection.classList.add('hidden');
+        showToast('복호화 실패: 비밀번호가 틀렸거나 손상된 암호문입니다.', 'error');
+      } finally {
+        els.btnDecrypt.disabled = false;
+      }
+    });
+
+    // 복호화된 주소 복사
+    els.btnCopyDecrypted.addEventListener('click', () => {
+      copyToClipboard(els.decryptedOutput.textContent, '복호화된 주소가 복사되었습니다.');
+    });
+
+    // ==========================================
+    // 6. URL 해시(#enc=...) 자동 감지 초기화
+    // ==========================================
+    function checkUrlHashOnLoad() {
+      const hash = window.location.hash;
+      if (hash && hash.includes('enc=')) {
+        try {
+          const encoded = hash.split('enc=')[1].split('&')[0];
+          const decodedCipher = decodeURIComponent(encoded);
+          if (decodedCipher) {
+            els.cipherInput.value = decodedCipher;
+            switchTab('decrypt');
+            showToast('공유 링크에서 암호화된 주소를 불러왔습니다. 비밀번호를 입력하세요.', 'info');
+            setTimeout(() => els.decryptKey.focus(), 200);
+          }
+        } catch (e) {
+          console.error('해시 파싱 오류:', e);
+        }
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', checkUrlHashOnLoad);
+  </script>
+</body>
+</html>
